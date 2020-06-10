@@ -85,6 +85,7 @@ class TextCNNAE:
 
                 context = context.to(self.device)
                 target = target.to(self.device)
+                print(self.device)
 
                 logits = self.model(context)
                 loss = F.cross_entropy(logits.view(-1, logits.size(-1)), target.reshape(-1),
