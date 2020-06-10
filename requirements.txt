@@ -1,1 +1,3 @@
 dill
+difflib
+soynlp
