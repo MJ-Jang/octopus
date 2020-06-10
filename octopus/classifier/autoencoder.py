@@ -56,7 +56,7 @@ class TextCNNAE:
         self.model = TextCNN(**self.model_conf)
 
         if self.n_gpu == 1:
-            pass
+            self.model = self.model.cuda()
         elif self.n_gpu > 1:
             self.model = torch.nn.DataParallel(self.model)
             self.model = self.model.cuda()
@@ -85,7 +85,6 @@ class TextCNNAE:
 
                 context = context.to(self.device)
                 target = target.to(self.device)
-                print(self.device)
 
                 logits = self.model(context)
                 loss = F.cross_entropy(logits.view(-1, logits.size(-1)), target.reshape(-1),
