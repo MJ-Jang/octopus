@@ -32,7 +32,7 @@ class PatternClassifier:
 
     def predict(self, sent: str, threshold=0.85):
         # pred: 1: in-domain, 0: out-domain
-        score, pred = 0, 0
+        score, pred, is_domain = 0, 0, False
         sent = self.preprocess([sent])[0]
         sent = sent.replace(' ', '')
         sent = self.string_only.sub(repl='', string=sent)
@@ -43,7 +43,8 @@ class PatternClassifier:
 
         if score >= threshold:
             pred = 1
-        return {'pred': pred, 'score': score}
+            is_domain = True
+        return {'pred': pred, 'score': score, 'is_domain': is_domain}
 
     def preprocess(self, sents: list):
         sents = [self.n_str_pattern.sub(repl=' ', string=w) for w in sents]
