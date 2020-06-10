@@ -95,7 +95,6 @@ class TextCNNAE:
                 # update the parameters
                 optimizer.step()
                 total_loss += loss.item()
-            total_loss = total_loss / len(sents)
             print("Total loss: {}".format(round(total_loss, 3)))
 
     def infer(self):
