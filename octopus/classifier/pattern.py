@@ -5,7 +5,7 @@ import dill
 from collections import Counter
 
 
-class OctopusModel:
+class PatternClassifier:
     def __init__(self, model_path: str = None):
         self.n_str_pattern = re.compile(pattern='[\\d\\-?/_!\\.,]')
         self.doublespacing = re.compile(pattern='\\s\\s+')
