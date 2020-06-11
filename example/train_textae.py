@@ -14,6 +14,7 @@ for f in filelist:
         data_ = [s.split('\t')[1] for s in data_]
         utterances += data_
 
+
 from octopus.classifier import TextCNNAE
 
 aa = TextCNNAE('basic_tokenizer.model', 128, 128)
@@ -29,3 +30,4 @@ train_config = {
 }
 
 aa.train(**train_config)
+aa.save_dict('example/test.model')

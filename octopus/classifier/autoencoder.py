@@ -1,8 +1,11 @@
 
 from octopus.tokenizer import SoyTokenizer
 from octopus.module import TextCNN
-from torch.utils.data import DataLoader, Dataset
+from octopus.dataset import AEDataset
+from torch.utils.data import DataLoader
 from tqdm import tqdm
+from collections import OrderedDict
+from difflib import SequenceMatcher
 
 import torch
 import torch.nn as nn
@@ -10,25 +13,7 @@ import torch.nn.functional as F
 import torch.optim as optim
 import dill
 import os
-
-
-class AEDataset(Dataset):
-    def __init__(self, tokenizer, sents: list, max_len: int):
-        self.tok = tokenizer
-        self.data = sents
-        self.max_len = max_len
-
-    def __len__(self):
-        return len(self.data)
-
-    def __getitem__(self, item):
-        sent = self.data[item]
-        tokens = self.tok.text_to_id(sent)
-        if len(tokens) < self.max_len:
-            tokens += [self.tok.pad] * (self.max_len - len(tokens))
-        else:
-            tokens = tokens[:self.max_len]
-        return torch.LongTensor(tokens), torch.LongTensor(tokens)
+import re
 
 
 class TextCNNAE:
@@ -97,8 +82,18 @@ class TextCNNAE:
                 total_loss += loss.item()
             print("Total loss: {}".format(round(total_loss, 3)))
 
-    def infer(self):
-        pass
+    def infer(self, text: str):
+        text = self._preprocess([text])[0]
+        inputs = self.tok.text_to_id(text)
+        inputs = torch.LongTensor([inputs])
+
+        logits = self.model(inputs)
+        pred = logits.argmax(dim=-1)
+        outp = self.tok.id_to_text(pred.tolist()[0])
+
+        ratio = SequenceMatcher(None, text.replace(' ', ''), ''.join(outp)).ratio()
+        print(ratio)
+        print(outp)
 
     def save_dict(self, save_path: str, model_prefix: str):
         os.makedirs(save_path, exist_ok=True)
@@ -114,3 +109,29 @@ class TextCNNAE:
         with open(filename, "wb") as file:
             dill.dump(outp_dict, file, protocol=dill.HIGHEST_PROTOCOL)
         self.model.to(self.device)
+
+    def load_model(self, model_path: str):
+        with open(model_path, 'rb') as modelFile:
+            model_dict = dill.load(modelFile)
+        model_conf = model_dict['model_conf']
+        self.model = TextCNN(**model_conf)
+        try:
+            self.model.load_state_dict(model_dict["model_params"])
+        except:
+            new_dict = OrderedDict()
+            for key in model_dict["model_params"].keys():
+                new_dict[key.replace('module.', '')] = model_dict["model_params"][key]
+            self.model.load_state_dict(new_dict)
+
+        self.model.to(self.device)
+        self.model.eval()
+
+    @staticmethod
+    def _preprocess(sents: list):
+        n_str_pattern = re.compile(pattern='[\\d\\-?/_!\\.,]')
+        doublespacing = re.compile(pattern='\\s\\s+')
+
+        sents = [n_str_pattern.sub(repl=' ', string=w) for w in sents]
+        sents = [doublespacing.sub(repl=' ', string=w).strip() for w in sents]
+        sents = [u.lower() for u in sents]
+        return sents

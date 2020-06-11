@@ -14,6 +14,8 @@ class SoyTokenizer:
                                             min_right_branching_entropy=0.0)
         self.unk = 0
         self.pad = 1
+        self.sos = 2,
+        self.eos = 3
 
         if model_path:
             with open(model_path, 'rb') as readFile:
@@ -44,6 +46,16 @@ class SoyTokenizer:
         self.word_extractor.train(sentences)
         words = self.word_extractor.extract()
         self.cohesion_score = {word: score.cohesion_forward for word, score in words.items()}
+
+        # add whitespace tokens
+        whitetokens = []
+        for s in sentences:
+            whitetokens += s.split(' ')
+        whitetokens = list(set(whitetokens))
+
+        for t in whitetokens:
+            self.cohesion_score.update({t: 1.0})
+
         self.tok_to_id, self.id_to_tok = self._build_dict()
 
     def save_model(self, model_path: str, model_prefix: str):
@@ -51,11 +63,11 @@ class SoyTokenizer:
             dill.dump(self.cohesion_score, saveFile)
 
     def _build_dict(self):
-        tok_to_id = {'<unk>': 0, '<pad>': 1}
-        id_to_tok = {0: '<unk>', 1: '<pad>'}
+        tok_to_id = {'<unk>': 0, '<pad>': 1, '<sos>': 2, '<eos>': 3}
+        id_to_tok = {0: '<unk>', 1: '<pad>', 2: '<sos>', 3: '<eos>'}
         for i, key in enumerate(self.cohesion_score.keys()):
-            tok_to_id[key] = i+2
-            id_to_tok[i+2] = key
+            tok_to_id[key] = i+4
+            id_to_tok[i+4] = key
         return tok_to_id, id_to_tok
 
     def preprocess(self, sents: list):

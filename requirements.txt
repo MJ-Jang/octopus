@@ -1,3 +1,4 @@
 dill
 soynlp
 tqdm
+numpy
