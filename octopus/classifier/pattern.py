@@ -61,6 +61,19 @@ class PatternClassifier:
         with open(path, 'wb') as saveFile:
             dill.dump(outp, saveFile)
 
+    def add_words(self, word_list: list):
+        # update words manually
+        words = list(self.counts.keys())
+        words = [w for w in words if len(w) >= 2]
+        words += [w for w in word_list if len(w) >= 2]
+        words.sort(key=lambda item: (-len(item), item))
+
+        self.pattern = '|'.join(words)
+
+        for w in word_list:
+            if len(w) >= 2:
+                self.counts[w] = 10000 
+
     def _automatic_threshold(self, in_domain: list, out_domain: list):
         if self.counts and self.pattern:
             id_domain_s = [self.predict(s)['socre'] for s in in_domain]
