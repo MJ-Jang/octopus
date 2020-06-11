@@ -1,7 +1,6 @@
-
 from octopus.tokenizer import SoyTokenizer
-from octopus.module import TextCNN
-from octopus.dataset import AEDataset
+from octopus.dataset import EncoderDecoderDataset
+from octopus.module.gru import Seq2Seq, Encoder, Decoder, Attention
 from torch.utils.data import DataLoader
 from tqdm import tqdm
 from collections import OrderedDict
@@ -16,11 +15,22 @@ import os
 import re
 
 
+attn = Attention(100, 100)
+enc = Encoder(1000, 100, 100, 100, 0.5)
+dec = Decoder(1000, 100, 100, 100, 0.5, attn)
+device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+model = Seq2Seq(enc, dec, device)
+
+a = model(torch.LongTensor([[1,2,3,4,5]]), torch.LongTensor([[1,2,3,4,5]]), [5])
+a.size()
+
+
 class TextCNNAE:
     def __init__(self,
                  tokenizer_path: str,
-                 embedding_dim: int,
-                 hidden_dim: int,
+                 enc_hid_dim: int,
+                 dec_hid_dim: int,
+                 dropout: float = 0.5,
                  use_gpu: bool = True, **kwargs):
         self.device = 'cuda:0' if torch.cuda.is_available() and use_gpu else 'cpu'
         if self.device == 'cuda:0':
@@ -32,13 +42,31 @@ class TextCNNAE:
         self.vocab_size = len(self.tok)
 
         self.model_conf = {
-            'vocab_size': self.vocab_size,
-            'embedding_dim': embedding_dim,
-            'hidden_dim': hidden_dim,
-            'n_class': self.vocab_size,
-        }
+            'encoder': {
+                'input_dim': self.vocab_size,
+                'emb_dim': enc_hid_dim,
+                'enc_hid_dim': enc_hid_dim,
+                'dec_hid_dim': dec_hid_dim,
+                'dropout': dropout
+            },
+            'decoder': {
+                'output_dim': self.vocab_size,
+                'emb_dim': enc_hid_dim,
+                'enc_hid_dim': enc_hid_dim,
+                'dec_hid_dim': dec_hid_dim,
+                'dropout': dropout
+            },
+            'attention': {
+                'enc_hid_dim': enc_hid_dim,
+                'dec_hid_dim': dec_hid_dim,
+            }
 
-        self.model = TextCNN(**self.model_conf)
+        }
+        attn = Attention(**self.model_conf['attention'])
+        encoder = Encoder(**self.model_conf['encoder'])
+        decoder = Decoder(attention=attn, **self.model_conf['decoder'])
+
+        self.model = Seq2Seq(encoder=encoder, decoder=decoder, device=device)
 
         if self.n_gpu == 1:
             self.model = self.model.cuda()
@@ -59,7 +87,7 @@ class TextCNNAE:
         self.model.train()
         optimizer = optim.Adam(self.model.parameters(), lr=lr)
 
-        dataset = AEDataset(self.tok, sents, max_len)
+        dataset = EncoderDecoderDataset(tok=self.tok, inputs=sents, targets=sents, max_len=max_len)
         dataloader = DataLoader(dataset, batch_size=batch_size, num_workers=num_workers)
 
         for epoch in range(num_epochs):
@@ -114,7 +142,7 @@ class TextCNNAE:
         with open(model_path, 'rb') as modelFile:
             model_dict = dill.load(modelFile)
         model_conf = model_dict['model_conf']
-        self.model = TextCNN(**model_conf)
+        self.model = Seq2Seq(**model_conf)
         try:
             self.model.load_state_dict(model_dict["model_params"])
         except:
@@ -135,6 +163,3 @@ class TextCNNAE:
         sents = [doublespacing.sub(repl=' ', string=w).strip() for w in sents]
         sents = [u.lower() for u in sents]
         return sents
-
-    def evaluate(self, in_domain_sents: list, out_domain_sents):
-        pass
