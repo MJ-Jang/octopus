@@ -11,6 +11,9 @@ class PatternClassifier:
         self.doublespacing = re.compile(pattern='\\s\\s+')
         self.string_only = re.compile(pattern='[^a-z가-힣]+')
 
+        self.counts = ''
+        self.pattern = ''
+
         if model_path:
             with open(model_path, 'rb') as file:
                 model = dill.load(file)
@@ -35,7 +38,6 @@ class PatternClassifier:
         score, pred, is_domain = 0, 0, False
         sent = self.preprocess([sent])[0]
         sent = sent.replace(' ', '')
-        sent = self.string_only.sub(repl='', string=sent)
 
         patterns = re.findall(self.pattern, string=sent)
         if patterns:
@@ -58,3 +60,10 @@ class PatternClassifier:
         outp = {'counts': self.counts, 'pattern': self.pattern}
         with open(path, 'wb') as saveFile:
             dill.dump(outp, saveFile)
+
+    def _automatic_threshold(self, in_domain: list, out_domain: list):
+        if self.counts and self.pattern:
+            id_domain_s = [self.predict(s)['socre'] for s in in_domain]
+            out_domain_s = [self.predict(s)['socre'] for s in out_domain]
+        else:
+            raise ValueError("No model for evaluation exists")
