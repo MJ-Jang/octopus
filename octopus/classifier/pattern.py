@@ -7,7 +7,7 @@ from collections import Counter
 
 class PatternClassifier:
     def __init__(self, model_path: str = None):
-        self.n_str_pattern = re.compile(pattern='[\\d\\-?/_!\\.,]')
+        self.n_str_pattern = re.compile(pattern='[\\d\\-?/_!\\.,\\[\\]\\(\\)]')
         self.doublespacing = re.compile(pattern='\\s\\s+')
         self.string_only = re.compile(pattern='[^a-z가-힣]+')
 
