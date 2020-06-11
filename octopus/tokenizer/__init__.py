@@ -1,1 +1,1 @@
-from .soy_tokenizer import SoyTokenizer
+# from .soy_tokenizer import SoyTokenizer

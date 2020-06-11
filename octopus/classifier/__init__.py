@@ -1,2 +1,2 @@
 from .pattern import PatternClassifier
-from .autoencoder import TextCNNAE
+# from .autoencoder import TextCNNAE
