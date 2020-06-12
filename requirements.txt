@@ -1,4 +1,2 @@
 dill
-soynlp
 tqdm
-numpy
