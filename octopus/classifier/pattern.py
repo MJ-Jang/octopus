@@ -7,7 +7,7 @@ from collections import Counter
 
 class PatternClassifier:
     def __init__(self, model_path: str = None):
-        self.n_str_pattern = re.compile(pattern='[\\d\\-?/_!\\.,\\[\\]\\(\\)#\\+$]')
+        self.n_str_pattern = re.compile(pattern='[\\d\\-?/_!\\.,\\[\\]\\(\\)#\\+$&*]')
         self.doublespacing = re.compile(pattern='\\s\\s+')
         self.string_only = re.compile(pattern='[^a-z가-힣]+')
 
@@ -25,6 +25,7 @@ class PatternClassifier:
         toks = []
         for s in sentences:
             toks += s.split(' ')
+
         counts = Counter(toks)
         words = list(counts.keys())
         words = [w for w in words if len(w) >= 2]
@@ -38,8 +39,8 @@ class PatternClassifier:
         score, pred, is_domain = 0, 0, False
         sent = self.preprocess([sent])[0]
         sent = sent.replace(' ', '')
-
         patterns = re.findall(self.pattern, string=sent)
+        print(patterns)
         if patterns:
             score = sum([len(s) for s in patterns]) / len(sent)
 
