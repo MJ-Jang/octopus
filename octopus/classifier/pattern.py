@@ -3,6 +3,7 @@ import os
 import dill
 
 from collections import Counter
+from octopus.utils.hangel import flat_hangeul
 
 
 class PatternClassifier:
@@ -40,9 +41,10 @@ class PatternClassifier:
         sent = self.preprocess([sent])[0]
         sent = sent.replace(' ', '')
         patterns = re.findall(self.pattern, string=sent)
-        print(patterns)
+        sent_flat = flat_hangeul(sent)
+
         if patterns:
-            score = sum([len(s) for s in patterns]) / len(sent)
+            score = sum([len(flat_hangeul(s)) for s in patterns]) / len(sent_flat)
 
         if score >= threshold:
             pred = 1
