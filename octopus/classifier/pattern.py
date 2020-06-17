@@ -8,7 +8,7 @@ from octopus.utils.hangel import flat_hangeul
 
 class PatternClassifier:
     def __init__(self, model_path: str = None):
-        self.n_str_pattern = re.compile(pattern='[\\d\\-?/_!\\.,\\[\\]\\(\\)#\\+$&*]')
+        self.n_str_pattern = re.compile(pattern='[\\d\\-?/_!\\.,\\[\\]\\(\\)#\\+\\$&*~]')
         self.doublespacing = re.compile(pattern='\\s\\s+')
         self.string_only = re.compile(pattern='[^a-z가-힣]+')
 
@@ -55,6 +55,7 @@ class PatternClassifier:
         sents = [self.n_str_pattern.sub(repl=' ', string=w) for w in sents]
         sents = [self.doublespacing.sub(repl=' ', string=w).strip() for w in sents]
         sents = [u.lower() for u in sents]
+        sents = [u.replace('\xa0', ' ') for u in sents]
         return sents
 
     def save_model(self, save_path, save_prefix):
