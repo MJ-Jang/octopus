@@ -55,7 +55,7 @@ class PatternClassifier:
         sents = [self.n_str_pattern.sub(repl=' ', string=w) for w in sents]
         sents = [self.doublespacing.sub(repl=' ', string=w).strip() for w in sents]
         sents = [u.lower() for u in sents]
-        sents = [self.string_only.sub(repl='', string=u) for u in sents]
+        # sents = [self.string_only.sub(repl='', string=u) for u in sents]
         return sents
 
     def save_model(self, save_path, save_prefix):
