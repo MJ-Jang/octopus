@@ -39,9 +39,8 @@ class PatternClassifier:
         # pred: 1: in-domain, 0: out-domain
         score, pred, is_domain = 0, 0, False
         sent = self.preprocess([sent])[0]
-        sent = sent.replace(' ', '')
         patterns = re.findall(self.pattern, string=sent)
-        sent_flat = flat_hangeul(sent)
+        sent_flat = flat_hangeul(sent.replace(' ', ''))
 
         if patterns:
             score = sum([len(flat_hangeul(s)) for s in patterns]) / len(sent_flat)
