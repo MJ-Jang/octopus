@@ -23,10 +23,6 @@ class Seq2SeqAE:
                  use_gpu: bool = True, **kwargs):
 
         self.device = 'cuda:0' if torch.cuda.is_available() and use_gpu else 'cpu'
-        if self.device == 'cuda:0':
-            self.n_gpu = torch.cuda.device_count()
-        else:
-            self.n_gpu = 0
 
         self.tok = SentencePieceTokenizer(tokenizer_path)
         self.vocab_size = len(self.tok)
@@ -39,6 +35,11 @@ class Seq2SeqAE:
             "dropout": dropout
         }
         self.model = Seq2Seq(**self.model_conf)
+        if self.device == 'cuda:0':
+            self.n_gpu = torch.cuda.device_count()
+            self.model.cuda()
+        else:
+            self.n_gpu = 0
 
     def train(self,
               sents: list,
