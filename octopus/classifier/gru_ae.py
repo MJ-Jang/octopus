@@ -26,6 +26,7 @@ class Seq2SeqAE:
 
         self.tok = SentencePieceTokenizer(tokenizer_path)
         self.vocab_size = len(self.tok)
+        self.tok_name = tokenizer_path.split('/')[-1]
 
         self.model_conf = {
             'vocab_size': self.vocab_size,
@@ -87,6 +88,7 @@ class Seq2SeqAE:
         filename = os.path.join(save_path, model_prefix+'.modeldict')
 
         outp_dict = {
+            'tok_name': self.tok_name,
             'model_params': self.model.cpu().state_dict(),
             'model_conf': self.model_conf,
             'model_type': 'pytorch'
