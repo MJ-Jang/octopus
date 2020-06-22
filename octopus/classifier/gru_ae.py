@@ -1,10 +1,9 @@
-from octopus.tokenizer import SoyTokenizer
+from octopus.tokenizer import SentencePieceTokenizer
 from octopus.dataset import EncoderDecoderDataset
-from octopus.module.gru import Seq2Seq, Encoder, Decoder, Attention
+from octopus.module.gru import Seq2Seq, Encoder, Decoder
 from torch.utils.data import DataLoader
 from tqdm import tqdm
 from collections import OrderedDict
-from difflib import SequenceMatcher
 
 import torch
 import torch.nn as nn
@@ -15,72 +14,37 @@ import os
 import re
 
 
-attn = Attention(100, 100)
-enc = Encoder(1000, 100, 100, 100, 0.5)
-dec = Decoder(1000, 100, 100, 100, 0.5, attn)
-device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
-model = Seq2Seq(enc, dec, device)
-
-a = model(torch.LongTensor([[1,2,3,4,5]]), torch.LongTensor([[1,2,3,4,5]]), [5])
-a.size()
-
-
-class TextCNNAE:
+class Seq2SeqAE:
     def __init__(self,
                  tokenizer_path: str,
                  enc_hid_dim: int,
                  dec_hid_dim: int,
                  dropout: float = 0.5,
                  use_gpu: bool = True, **kwargs):
+
         self.device = 'cuda:0' if torch.cuda.is_available() and use_gpu else 'cpu'
         if self.device == 'cuda:0':
             self.n_gpu = torch.cuda.device_count()
         else:
             self.n_gpu = 0
 
-        self.tok = SoyTokenizer(tokenizer_path)
+        self.tok = SentencePieceTokenizer(tokenizer_path)
         self.vocab_size = len(self.tok)
 
         self.model_conf = {
-            'encoder': {
-                'input_dim': self.vocab_size,
-                'emb_dim': enc_hid_dim,
-                'enc_hid_dim': enc_hid_dim,
-                'dec_hid_dim': dec_hid_dim,
-                'dropout': dropout
-            },
-            'decoder': {
-                'output_dim': self.vocab_size,
-                'emb_dim': enc_hid_dim,
-                'enc_hid_dim': enc_hid_dim,
-                'dec_hid_dim': dec_hid_dim,
-                'dropout': dropout
-            },
-            'attention': {
-                'enc_hid_dim': enc_hid_dim,
-                'dec_hid_dim': dec_hid_dim,
-            }
-
+            'vocab_size': self.vocab_size,
+            'emb_dim': enc_hid_dim,
+            'enc_hid_dim': enc_hid_dim,
+            'dec_hid_dim': dec_hid_dim,
+            "dropout": dropout
         }
-        attn = Attention(**self.model_conf['attention'])
-        encoder = Encoder(**self.model_conf['encoder'])
-        decoder = Decoder(attention=attn, **self.model_conf['decoder'])
-
-        self.model = Seq2Seq(encoder=encoder, decoder=decoder, device=device)
-
-        if self.n_gpu == 1:
-            self.model = self.model.cuda()
-        elif self.n_gpu > 1:
-            self.model = torch.nn.DataParallel(self.model)
-            self.model = self.model.cuda()
+        self.model = Seq2Seq(**self.model_conf)
 
     def train(self,
               sents: list,
               batch_size: int,
               num_epochs: int,
               lr: float,
-              save_path: str = None,
-              model_prefix: str = None,
               max_len: int = 8,
               num_workers: int = 4
               ):
@@ -92,16 +56,19 @@ class TextCNNAE:
 
         for epoch in range(num_epochs):
             total_loss = 0
-            for context, target in tqdm(dataloader, desc='batch progress'):
+            for batch in tqdm(dataloader, desc='batch progress'):
                 # Remember PyTorch accumulates gradients; zero them out
+                inputs, input_len, target_inputs, target_outputs = batch
                 self.model.zero_grad()
 
-                context = context.to(self.device)
-                target = target.to(self.device)
+                inputs = inputs.to(self.device)
+                input_len = input_len.to(self.device)
+                target_inputs = target_inputs.to(self.device)
+                target_outputs = target_outputs.to(self.device)
+                logits = self.model(inputs, input_len, target_inputs, input_len)
 
-                logits = self.model(context)
-                loss = F.cross_entropy(logits.view(-1, logits.size(-1)), target.reshape(-1),
-                                       ignore_index=self.tok.pad)
+                loss = F.cross_entropy(logits.view(-1, logits.size(-1)), target_outputs.reshape(-1),
+                                       ignore_index=self.tok.token_to_id(self.tok.pad))
 
                 # backpropagation
                 loss.backward()
@@ -111,17 +78,7 @@ class TextCNNAE:
             print("Total loss: {}".format(round(total_loss, 3)))
 
     def infer(self, text: str):
-        text = self._preprocess([text])[0]
-        inputs = self.tok.text_to_id(text)
-        inputs = torch.LongTensor([inputs])
-
-        logits = self.model(inputs)
-        pred = logits.argmax(dim=-1)
-        outp = self.tok.id_to_text(pred.tolist()[0])
-
-        ratio = SequenceMatcher(None, text.replace(' ', ''), ''.join(outp)).ratio()
-        print(ratio)
-        print(outp)
+        pass
 
     def save_dict(self, save_path: str, model_prefix: str):
         os.makedirs(save_path, exist_ok=True)

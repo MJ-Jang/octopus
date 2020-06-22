@@ -5,13 +5,13 @@ from torch.utils.data.dataset import Dataset
 
 from typing import Text, Dict, List
 
+UNK_TOKEN = '<unk>'
 PAD_TOKEN = '<pad>'
 START_TOKEN = '<s>'
 END_TOKEN = '</s>'
 
 
 class EncoderDecoderDataset(Dataset):
-
     name = 'encoder_decoder_dataset'
 
     def __init__(self,
@@ -30,34 +30,34 @@ class EncoderDecoderDataset(Dataset):
         self.tok = tok
         self.max_len = max_len
 
-        self.pad_token = pad_token
-        self.start_token = start_token
-        self.end_token = end_token
+        self.unk_id = tok.token_to_id(UNK_TOKEN)
+        self.pad_id = tok.token_to_id(PAD_TOKEN)
+        self.sos_id = tok.token_to_id(START_TOKEN)
+        self.eos_id = tok.token_to_id(END_TOKEN)
 
     def __len__(self):
         return len(self.inputs)
 
     def __getitem__(self, idx):
         input_sent = self.inputs[idx]
-        seq_len = min(len(self.tok.encode_as_ids(input_sent)), self.max_len)
+        input_len = min(len(self.tok.text_to_id(input_sent)), self.max_len)
         target_sent = self.targets[idx]
 
         input_token = np.array(self.tokenize(input_sent))
-        target_token = np.array(self.tokenize(target_sent))
+        target_token = self.tokenize(target_sent)
 
-        return input_token, target_token, seq_len
+        target_inputs = np.array(target_token[:-1] + [self.pad_id])
+        target_outputs = np.array(target_token[1:] + [self.pad_id])
+
+        return input_token, input_len, target_inputs, target_outputs
 
     def tokenize(self, text: Text):
-        pad_id = self.tok.piece_to_id(self.pad_token)
-        start_id = self.tok.piece_to_id(self.start_token)
-        end_id = self.tok.piece_to_id(self.end_token)
-
-        token = self.tok.encode_as_ids(text)
+        token = self.tok.text_to_id(text)
         if len(token) < self.max_len - 2:
-            token += [end_id] + [pad_id] * (self.max_len - len(token) - 2)
-            token = [start_id] + token
+            token += [self.eos_id] + [self.pad_id] * (self.max_len - len(token) - 2)
+            token = [self.sos_id] + token
         else:
-            token = [start_id] + token[:self.max_len-2] + [end_id]
+            token = [self.sos_id] + token[:self.max_len - 2] + [self.eos_id]
         return token
 
 

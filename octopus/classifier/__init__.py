@@ -1,2 +1,2 @@
 from .pattern import PatternClassifier
-# from .autoencoder import TextCNNAE
+from .gru_ae import Seq2SeqAE

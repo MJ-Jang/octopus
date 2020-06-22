@@ -14,7 +14,7 @@ class SoyTokenizer:
                                             min_right_branching_entropy=0.0)
         self.unk = 0
         self.pad = 1
-        self.sos = 2,
+        self.sos = 2
         self.eos = 3
 
         if model_path:
@@ -41,20 +41,21 @@ class SoyTokenizer:
     def id_to_text(self, idxs: list):
         return [self.id_to_tok[i] for i in idxs]
 
-    def train(self, sentences):
+    def train(self, sentences, add_whitespace: bool = False):
         sentences = self.preprocess(sentences)
         self.word_extractor.train(sentences)
         words = self.word_extractor.extract()
         self.cohesion_score = {word: score.cohesion_forward for word, score in words.items()}
 
         # add whitespace tokens
-        whitetokens = []
-        for s in sentences:
-            whitetokens += s.split(' ')
-        whitetokens = list(set(whitetokens))
+        if add_whitespace:
+            whitetokens = []
+            for s in sentences:
+                whitetokens += s.split(' ')
+            whitetokens = list(set(whitetokens))
 
-        for t in whitetokens:
-            self.cohesion_score.update({t: 1.0})
+            for t in whitetokens:
+                self.cohesion_score.update({t: 1.0})
 
         self.tok_to_id, self.id_to_tok = self._build_dict()
 
