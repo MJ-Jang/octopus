@@ -27,6 +27,7 @@ class Seq2SeqAE:
         self.tok = SentencePieceTokenizer(tokenizer_path)
         self.vocab_size = len(self.tok)
         self.tok_name = tokenizer_path.split('/')[-1]
+        self.max_len = None
 
         self.model_conf = {
             'vocab_size': self.vocab_size,
@@ -51,6 +52,7 @@ class Seq2SeqAE:
               num_workers: int = 4
               ):
         self.model.train()
+        self.max_len = max_len
         optimizer = optim.Adam(self.model.parameters(), lr=lr)
 
         dataset = EncoderDecoderDataset(tok=self.tok, inputs=sents, targets=sents, max_len=max_len)
@@ -89,6 +91,7 @@ class Seq2SeqAE:
 
         outp_dict = {
             'tok_name': self.tok_name,
+            'max_len': self.max_len,
             'model_params': self.model.cpu().state_dict(),
             'model_conf': self.model_conf,
             'model_type': 'pytorch'
@@ -111,15 +114,42 @@ class Seq2SeqAE:
                 new_dict[key.replace('module.', '')] = model_dict["model_params"][key]
             self.model.load_state_dict(new_dict)
 
+        self.max_len = model_dict.get('max_len')
         self.model.to(self.device)
         self.model.eval()
 
-    @staticmethod
-    def _preprocess(sents: list):
-        n_str_pattern = re.compile(pattern='[\\d\\-?/_!\\.,]')
-        doublespacing = re.compile(pattern='\\s\\s+')
+    def _generate_vectors(self, sents: list, batch_size: int = 128, do_average: bool = True):
+        dataset = EncoderDecoderDataset(tok=self.tok, inputs=sents, targets=sents, max_len=8)
+        loader = DataLoader(dataset, batch_size=batch_size)
+        outp = []
+        for i, b in enumerate(loader):
+            inputs, input_len, _, _ = b
+            _, vecs = self.model.enc(inputs, input_len)
+            outp.append(vecs)
+        outp = torch.cat(outp, dim=0)
+        if do_average:
+            outp = outp.mean(dim=0)
+        outp = outp.detach().cpu().numpy()
+        return outp
 
-        sents = [n_str_pattern.sub(repl=' ', string=w) for w in sents]
-        sents = [doublespacing.sub(repl=' ', string=w).strip() for w in sents]
-        sents = [u.lower() for u in sents]
-        return sents
+    def _generate_single_vector(self, sent: str):
+        dataset = EncoderDecoderDataset(tok=self.tok, inputs=[sent], targets=[sent], max_len=8)
+        inputs, input_len, _, _ = dataset.__getitem__(0)
+        _, vecs = self.model.enc(torch.LongTensor([inputs]), [input_len])
+        vecs = vecs.detach().cpu().numpy()
+        return vecs
+
+    def construct_centervecs(self, utter_dict: dict):
+        """
+        utter_dict: {
+            "intent_name": [
+                "aaa",
+                "bbb"
+            ]
+        }
+        """
+        outp = []
+        for key, sents in tqdm(utter_dict.items()):
+            center_vec = self._generate_vectors(sents, batch_size=128)
+            outp.append(center_vec)
+        return outp

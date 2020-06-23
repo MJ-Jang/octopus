@@ -32,9 +32,8 @@ class Encoder(nn.Module):
         packed_emb = nn.utils.rnn.pack_padded_sequence(output, seq_len, enforce_sorted=False)
         packed_outputs, hidden = self.rnn(packed_emb, hidden)
 
-        outputs, _ = nn.utils.rnn.pad_packed_sequence(packed_outputs)
-        hidden = torch.tanh(self.fc(torch.cat((hidden[-2, :, :], hidden[-1, :, :]), dim=1)))
-
+        outputs, length = nn.utils.rnn.pad_packed_sequence(packed_outputs)
+        hidden = hidden.mean(dim=0)
         # output: [batch_size, seq_len, hidden_size]
         return outputs, hidden
 
@@ -89,9 +88,3 @@ class Seq2Seq(nn.Module):
         _, hidden = self.enc(src, src_len)
         outp = self.dec(tgt, tgt_len, hidden)
         return outp
-
-
-aa = Seq2Seq(100, 10, 10, 10)
-inputs = torch.LongTensor([[1,2,3,4], [1,2,3,0]])
-outp = aa(inputs, [4,3], inputs, [4,3])
-outp.size()
