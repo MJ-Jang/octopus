@@ -35,14 +35,14 @@ class TextDeepSVDD:
             "dropout": dropout
         }
         self.model = Encoder(**self.model_conf)
-        self.c = Variable(torch.Tensor(self._xavier_init(enc_hid_dim)), requires_grad=True)
 
         if self.device == 'cuda:0':
             self.n_gpu = torch.cuda.device_count()
             self.model.cuda()
-            self.c.cuda()
+            self.c = Variable(torch.Tensor(self._xavier_init(enc_hid_dim)).cuda(), requires_grad=True)
         else:
             self.n_gpu = 0
+            self.c = Variable(torch.Tensor(self._xavier_init(enc_hid_dim)), requires_grad=True)
 
     def train(self,
               sents: list,
@@ -53,6 +53,7 @@ class TextDeepSVDD:
               lamb: float = 1e-5,
               num_workers: int = 4
               ):
+
         self.model.train()
         self.max_len = max_len
         optimizer = optim.Adam(self.model.parameters(), lr=lr)
