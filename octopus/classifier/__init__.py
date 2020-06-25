@@ -1,2 +1,2 @@
 from .pattern import PatternClassifier
-from .deep_svdd import DeepSVDDDataset
+from .deep_svdd import TextDeepSVDD
