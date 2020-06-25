@@ -61,11 +61,12 @@ class EncoderDecoderDataset(Dataset):
         return token
 
 
-class AEDataset(Dataset):
+class DeepSVDDDataset(Dataset):
     def __init__(self, tokenizer, sents: list, max_len: int):
         self.tok = tokenizer
         self.data = sents
         self.max_len = max_len
+        self.pad_id = tokenizer.token_to_id(PAD_TOKEN)
 
     def __len__(self):
         return len(self.data)
@@ -73,8 +74,12 @@ class AEDataset(Dataset):
     def __getitem__(self, item):
         sent = self.data[item]
         tokens = self.tok.text_to_id(sent)
+        length = min(len(tokens), self.max_len)
         if len(tokens) < self.max_len:
-            tokens += [self.tok.pad] * (self.max_len - len(tokens))
+            tokens += [self.pad_id] * (self.max_len - len(tokens))
         else:
             tokens = tokens[:self.max_len]
-        return torch.LongTensor(tokens), torch.LongTensor(tokens)
+        return torch.LongTensor(tokens), length
+
+    def _corruption(self):
+        raise NotImplementedError("Not implemented yet")

@@ -1,1 +1,1 @@
-from .dataset import EncoderDecoderDataset
+from .dataset import EncoderDecoderDataset, DeepSVDDDataset

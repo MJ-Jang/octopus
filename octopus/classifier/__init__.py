@@ -1,2 +1,2 @@
 from .pattern import PatternClassifier
-from .gru_ae import Seq2SeqAE
+from .deep_svdd import DeepSVDDDataset
