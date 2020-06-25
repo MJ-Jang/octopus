@@ -72,7 +72,6 @@ class TextDeepSVDD:
                 input_len = input_len.to(self.device)
 
                 _, vecs = self.model(inputs, input_len)
-                print(vecs.device, self.c.device)
 
                 l_c = 1 / len(vecs) * torch.sum((vecs - self.c) ** 2)
                 frob_reg = torch.tensor(0.).to(self.device)
