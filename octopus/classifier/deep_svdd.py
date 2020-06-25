@@ -70,13 +70,13 @@ class TextDeepSVDD:
                 inputs = inputs.to(self.device)
                 input_len = input_len.to(self.device)
 
-
                 _, vecs = self.model(inputs, input_len)
+                print(vecs.device, self.c.device)
 
                 l_c = 1 / len(vecs) * torch.sum((vecs - self.c) ** 2)
-                frob_reg = torch.tensor(0.)
+                frob_reg = torch.tensor(0.).to(self.device)
                 for param in self.model.parameters():
-                    frob_reg += torch.norm(param, p='fro')
+                    frob_reg += torch.norm(param, p='fro').to(self.device)
                 loss = l_c + lamb / 2 * frob_reg
 
                 # backpropagation
