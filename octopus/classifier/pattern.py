@@ -6,11 +6,15 @@ from collections import Counter
 from octopus.utils.hangel import flat_hangeul
 
 
+neg_pattern = re.compile(pattern='\\d{1,2}월|\\d{1,2}일')
+digit_pattern = re.compile(pattern='\\d+')
+
+
 class PatternClassifier:
     def __init__(self, model_path: str = None):
-        self.n_str_pattern = re.compile(pattern='[\\d\\-?/_!\\.,\\[\\]\\(\\)#\\+\\$&*~]')
+        self.n_str_pattern = re.compile(pattern='[\\-?/_!\\.,\\[\\]\\(\\)#\\+\\$&*~]')
         self.doublespacing = re.compile(pattern='\\s\\s+')
-        self.string_only = re.compile(pattern='[^a-z가-힣\\s]+')
+        self.string_only = re.compile(pattern='[^a-z가-힣\\s\\d]+')
 
         self.counts = ''
         self.pattern = ''
@@ -21,15 +25,20 @@ class PatternClassifier:
             self.counts = model['counts']
             self.pattern = model['pattern']
 
-    def train(self, sentences):
+    def train(self, sentences, min_cnt: int = None):
         sentences = self.preprocess(sentences)
         toks = []
-        for s in sentences:
-            toks += s.split(' ')
+        for sent in sentences:
+            # filter digit only tokens
+            sents = [s for s in sent.split(' ') if len(s) != len(self._extract_digits(s))]
+            sents = self._filter_negative_tokens(sents)
+            toks += sents
 
         counts = Counter(toks)
         words = list(counts.keys())
         words = [w for w in words if len(w) >= 2]
+        if min_cnt:
+            words = [w for w in words if counts[w] >= min_cnt]
         words.sort(key=lambda item: (-len(item), item))
 
         self.counts = counts
@@ -68,6 +77,10 @@ class PatternClassifier:
         # update words manually
         words = list(self.counts.keys())
         words = [w for w in words if len(w) >= 2]
+
+        word_list = [s for s in word_list if len(s) != len(self._extract_digits(s))]
+        word_list = self._filter_negative_tokens(word_list)
+
         words += [w for w in word_list if len(w) >= 2]
         words.sort(key=lambda item: (-len(item), item))
 
@@ -75,11 +88,27 @@ class PatternClassifier:
 
         for w in word_list:
             if len(w) >= 2:
-                self.counts[w] = 10000 
+                self.counts[w] = 10000
 
-    def _automatic_threshold(self, in_domain: list, out_domain: list):
-        if self.counts and self.pattern:
-            id_domain_s = [self.predict(s)['socre'] for s in in_domain]
-            out_domain_s = [self.predict(s)['socre'] for s in out_domain]
+    @staticmethod
+    def _extract_digits(token: str):
+        match = digit_pattern.search(token)
+        if match:
+            s, e = match.span()
+            return token[s:e]
         else:
-            raise ValueError("No model for evaluation exists")
+            return ''
+
+    @staticmethod
+    def _filter_negative_tokens(token_list: list):
+        rm_idx = []
+        for i, token in enumerate(token_list):
+            if neg_pattern.match(token):
+                s, e = neg_pattern.match(token).span()
+                if e-s == len(token):
+                    rm_idx.append(i)
+        if rm_idx:
+            return [token_list[i] for i in range(len(token_list)) if i not in rm_idx]
+        else:
+            return token_list
+
