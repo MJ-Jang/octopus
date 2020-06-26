@@ -95,7 +95,7 @@ class TextDeepSVDD:
             'model_params': self.model.cpu().state_dict(),
             'model_conf': self.model_conf,
             'model_type': 'pytorch',
-            'centroid': self.c
+            'centroid': self.c.cpu()
         }
 
         with open(filename, "wb") as file:
