@@ -74,7 +74,7 @@ class DeepSVDDDataset(Dataset):
     def __getitem__(self, item):
         sent = self.data[item]
         tokens = self.tok.text_to_id(sent)
-        tokens = self._corruption(np.array(tokens))
+        tokens = self._corruption(tokens)
         length = min(len(tokens), self.max_len)
         if len(tokens) < self.max_len:
             tokens += [self.pad_id] * (self.max_len - len(tokens))
@@ -88,11 +88,7 @@ class DeepSVDDDataset(Dataset):
         :param k: hyperparameter
         :return: permuted result
         """
-        X_noise = []
-        n_samples = x.shape[0]
-
-        for i in range(n_samples):
-            q = [i + np.random.uniform(k + 1) for i in range(len(x[i]))]
-            tmp = np.c_[x[i], q]
-            X_noise.append(tmp[tmp[:, 1].argsort()][:, 0])
-        return np.array(X_noise)
+        q = [i + np.random.uniform(k + 1) for i in range(len(x))]
+        tmp = np.c_[x, q]
+        x_noise = tmp[tmp[:, 1].argsort()][:, 0]
+        return x_noise
