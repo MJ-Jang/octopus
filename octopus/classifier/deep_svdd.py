@@ -86,6 +86,15 @@ class TextDeepSVDD:
                 total_loss += loss.item()
             print("Total loss: {}".format(round(total_loss, 3)))
 
+    def predict(self, sent: str):
+        inputs = self.tok.text_to_id(sent)
+        length = len(inputs)
+        inputs = torch.LongTensor([inputs])
+
+        _, vec = self.model(inputs, [length])
+        score = torch.sum((vec - self.c)**2)
+        return float(score)
+
     def save_model(self, save_path, model_prefix):
         os.makedirs(save_path, exist_ok=True)
         filename = os.path.join(save_path, model_prefix+'.modeldict')
