@@ -91,4 +91,5 @@ class DeepSVDDDataset(Dataset):
         q = [i + np.random.uniform(k + 1) for i in range(len(x))]
         tmp = np.c_[x, q]
         x_noise = tmp[tmp[:, 1].argsort()][:, 0]
-        return x_noise
+        return [int(i) for i in x_noise]
+
