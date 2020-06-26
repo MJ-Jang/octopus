@@ -74,7 +74,7 @@ class DeepSVDDDataset(Dataset):
     def __getitem__(self, item):
         sent = self.data[item]
         tokens = self.tok.text_to_id(sent)
-        tokens = self._corruption(tokens)
+        # tokens = self._corruption(tokens)
         length = min(len(tokens), self.max_len)
         if len(tokens) < self.max_len:
             tokens += [self.pad_id] * (self.max_len - len(tokens))
