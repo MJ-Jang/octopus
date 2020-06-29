@@ -24,6 +24,7 @@ class PatternClassifier:
                 model = dill.load(file)
             self.counts = model['counts']
             self.pattern = model['pattern']
+            self.eng_set = set(re.findall(pattern='[a-zA-Z]+', string=self.pattern))
 
     def train(self, sentences, min_cnt: int = None):
         sentences = self.preprocess(sentences)
@@ -43,16 +44,23 @@ class PatternClassifier:
 
         self.counts = counts
         self.pattern = '|'.join(words)
+        self.eng_set = set(re.findall(pattern='[a-zA-Z]+', string=self.pattern))
 
     def predict(self, sent: str, threshold=0.85):
         # pred: 1: in-domain, 0: out-domain
         score, pred, is_domain = 0, 0, False
         sent = self.preprocess([sent])[0]
-        patterns = re.findall(self.pattern, string=sent)
-        sent_flat = flat_hangeul(sent.replace(' ', ''))
 
-        if patterns:
-            score = sum([len(flat_hangeul(s)) for s in patterns]) / len(sent_flat)
+        # add filtering case for the case when sentence is all english
+        if self.is_all_eng(sent):
+            outp = [s for s in sent.split(' ') if s in self.eng_set]
+            score = len(' '.join(outp)) / len(sent)
+        else:
+            patterns = re.findall(self.pattern, string=sent)
+            sent_flat = flat_hangeul(sent.replace(' ', ''))
+
+            if patterns:
+                score = sum([len(flat_hangeul(s)) for s in patterns]) / len(sent_flat)
 
         if score >= threshold:
             pred = 1
@@ -111,4 +119,16 @@ class PatternClassifier:
             return [token_list[i] for i in range(len(token_list)) if i not in rm_idx]
         else:
             return token_list
+
+    @staticmethod
+    def is_all_eng(text: str):
+        pattern = re.compile(pattern='[a-zA-Z\\s]+')
+        match = pattern.search(text)
+        if match:
+            s, e = match.span()
+            length = e - s
+            if length == len(text):
+                return True
+        return False
+
 
