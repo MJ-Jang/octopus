@@ -83,14 +83,15 @@ class PatternClassifier:
             is_domain = True
 
         # ambiguous score logic
-        if ambiguous_threshold and self.ambiguous_keywords:
-            new_threshold = threshold - ambiguous_threshold
-            if score >= new_threshold or score_wo_space >= new_threshold:
-                patterns = re.findall(pattern=self.ambiguous_keywords, string=sent.replace(' ', ''))
-                if patterns:
-                    pred = 1
-                    is_domain = True
-                    pass_ambiguous = True
+        if pred == 0:
+            if ambiguous_threshold and self.ambiguous_keywords:
+                new_threshold = threshold - ambiguous_threshold
+                if score >= new_threshold or score_wo_space >= new_threshold:
+                    patterns = re.findall(pattern=self.ambiguous_keywords, string=sent.replace(' ', ''))
+                    if patterns:
+                        pred = 1
+                        is_domain = True
+                        pass_ambiguous = True
         score = max(score, score_wo_space)
         return {'pred': pred, 'score': score, 'is_domain': is_domain, 'pass_ambiguous': pass_ambiguous}
 
