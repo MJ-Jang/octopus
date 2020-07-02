@@ -5,7 +5,7 @@ with open("requirements.txt") as f:
 
 setup(
     name='octopus',
-    version='0.1.1',
+    version='0.1.2',
     description='Pattern based simple text filter',
     author='MJ Jang',
     install_requires=required,
