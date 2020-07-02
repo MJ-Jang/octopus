@@ -32,6 +32,10 @@ class PatternClassifier:
             ambiguous_keywords.sort(key=lambda item: (-len(item), item))
             self.ambiguous_keywords = '|'.join(ambiguous_keywords)
 
+            pattern = self.pattern.split('|') + ambiguous_keywords
+            pattern.sort(key=lambda item: (-len(item), item))
+            self.pattern = '|'.join(pattern)
+
     def train(self, sentences, min_cnt: int = None):
         sentences = self.preprocess(sentences)
         toks = []
