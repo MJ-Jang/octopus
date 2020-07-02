@@ -11,7 +11,7 @@ digit_pattern = re.compile(pattern='\\d+')
 
 
 class PatternClassifier:
-    def __init__(self, model_path: str = None):
+    def __init__(self, model_path: str = None, ambiguous_keywords: list = None):
         self.n_str_pattern = re.compile(pattern='[\\-?/_!\\.,\\[\\]\\(\\)#\\+\\$&*~]')
         self.doublespacing = re.compile(pattern='\\s\\s+')
         self.string_only = re.compile(pattern='[^a-z가-힣\\s\\d]+')
@@ -25,6 +25,12 @@ class PatternClassifier:
             self.counts = model['counts']
             self.pattern = model['pattern']
             self.eng_set = set(re.findall(pattern='[a-zA-Z]+', string=self.pattern))
+
+        self.ambiguous_keywords = ''
+        if ambiguous_keywords:
+            ambiguous_keywords = self.keyword_preprocess(ambiguous_keywords)
+            ambiguous_keywords.sort(key=lambda item: (-len(item), item))
+            self.ambiguous_keywords = '|'.join(ambiguous_keywords)
 
     def train(self, sentences, min_cnt: int = None):
         sentences = self.preprocess(sentences)
@@ -46,9 +52,9 @@ class PatternClassifier:
         self.pattern = '|'.join(words)
         self.eng_set = set(re.findall(pattern='[a-zA-Z]+', string=self.pattern))
 
-    def predict(self, sent: str, threshold=0.85):
+    def predict(self, sent: str, threshold: float = 0.85, ambiguous_threshold: float = None):
         # pred: 1: in-domain, 0: out-domain
-        score, pred, is_domain = 0, 0, False
+        score, score_wo_space, pred, is_domain, pass_ambiguous = 0, 0, 0, False, False
         sent = self.preprocess([sent])[0]
 
         # add filtering case for the case when sentence is all english
@@ -56,16 +62,33 @@ class PatternClassifier:
             outp = [s for s in sent.split(' ') if s in self.eng_set]
             score = len(' '.join(outp)) / len(sent)
         else:
+            # flatten character similarity
             patterns = re.findall(self.pattern, string=sent)
             sent_flat = flat_hangeul(sent.replace(' ', ''))
-
             if patterns:
                 score = sum([len(flat_hangeul(s)) for s in patterns]) / len(sent_flat)
 
-        if score >= threshold:
+            # original text similarity without space
+            sent_wo_space = sent.replace(' ', '')
+            pattern_wo_space = re.findall(self.pattern, string=sent_wo_space)
+            if patterns:
+                score_wo_space = sum([len(s) for s in pattern_wo_space]) / len(sent_wo_space)
+
+        if score >= threshold or score_wo_space >= threshold:
             pred = 1
             is_domain = True
-        return {'pred': pred, 'score': score, 'is_domain': is_domain}
+
+        # ambiguous score logic
+        if ambiguous_threshold and self.ambiguous_keywords:
+            new_threshold = threshold - ambiguous_threshold
+            if score >= new_threshold or score_wo_space >= new_threshold:
+                patterns = re.findall(pattern=self.ambiguous_keywords, string=sent.replace(' ', ''))
+                if patterns:
+                    pred = 1
+                    is_domain = True
+                    pass_ambiguous = True
+        score = max(score, score_wo_space)
+        return {'pred': pred, 'score': score, 'is_domain': is_domain, 'pass_ambiguous': pass_ambiguous}
 
     def preprocess(self, sents: list):
         sents = [self.n_str_pattern.sub(repl=' ', string=w) for w in sents]
@@ -73,6 +96,13 @@ class PatternClassifier:
         sents = [u.lower() for u in sents]
         sents = [self.string_only.sub(repl='', string=u) for u in sents]
         return sents
+
+    def keyword_preprocess(self, keywords: list):
+        keywords = self.preprocess(keywords)
+        keywords = [w.replace(' ', '') for w in keywords]
+        # remove too short keywords
+        keywords = [w for w in keywords if len(w) >= 3]
+        return keywords
 
     def save_model(self, save_path, save_prefix):
         path = os.path.join(save_path, save_prefix+'.model')
