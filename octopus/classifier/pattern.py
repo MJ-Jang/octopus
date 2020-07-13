@@ -15,6 +15,7 @@ class PatternClassifier:
         self.n_str_pattern = re.compile(pattern='[\\-?/_!\\.,\\[\\]\\(\\)#\\+\\$&*~]')
         self.doublespacing = re.compile(pattern='\\s\\s+')
         self.string_only = re.compile(pattern='[^a-z가-힣\\s\\d]+')
+        self.long_digits = re.compile(pattern='\\d{3,}')
 
         self.counts = ''
         self.pattern = ''
@@ -100,6 +101,7 @@ class PatternClassifier:
         sents = [self.doublespacing.sub(repl=' ', string=w).strip() for w in sents]
         sents = [u.lower() for u in sents]
         sents = [self.string_only.sub(repl='', string=u) for u in sents]
+        sents = [self.long_digits.sub(repl='', string=u).strip() for u in sents]
         return sents
 
     def keyword_preprocess(self, keywords: list):
@@ -165,5 +167,3 @@ class PatternClassifier:
             if length == len(text):
                 return True
         return False
-
-
