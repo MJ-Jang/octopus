@@ -17,7 +17,7 @@ class PatternClassifier:
         self.string_only = re.compile(pattern='[^a-z가-힣\\s\\d]+')
         self.long_digits = re.compile(pattern='\\d{3,}')
 
-        self.counts = ''
+        self.counts = Counter()
         self.pattern = ''
 
         if model_path:
