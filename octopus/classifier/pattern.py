@@ -102,6 +102,7 @@ class PatternClassifier:
         sents = [u.lower() for u in sents]
         sents = [self.string_only.sub(repl='', string=u) for u in sents]
         sents = [self.long_digits.sub(repl='', string=u).strip() for u in sents]
+        sents = [s.replace(" ", "") for s in sents]
         return sents
 
     def keyword_preprocess(self, keywords: list):
