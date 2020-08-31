@@ -61,6 +61,8 @@ class PatternClassifier:
         # pred: 1: in-domain, 0: out-domain
         score, score_wo_space, pred, is_domain, pass_ambiguous = 0, 0, 0, False, False
         sent = self.preprocess([sent])[0]
+        # remove space only in prediction case
+        sent = sent.replace(" ", "")
 
         # add filtering case for the case when sentence is all english
         if self.is_all_eng(sent):
@@ -102,7 +104,6 @@ class PatternClassifier:
         sents = [u.lower() for u in sents]
         sents = [self.string_only.sub(repl='', string=u) for u in sents]
         sents = [self.long_digits.sub(repl='', string=u).strip() for u in sents]
-        sents = [s.replace(" ", "") for s in sents]
         return sents
 
     def keyword_preprocess(self, keywords: list):
