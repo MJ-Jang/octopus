@@ -96,7 +96,7 @@ class PatternClassifier:
                         is_domain = True
                         pass_ambiguous = True
         score = max(score, score_wo_space)
-        return {'pred': pred, 'score': score, 'is_domain': is_domain, 'pass_ambiguous': pass_ambiguous}
+        return {'pred': pred, 'score': max(score, score_wo_space), 'is_domain': is_domain, 'pass_ambiguous': pass_ambiguous}
 
     def preprocess(self, sents: list):
         sents = [self.n_str_pattern.sub(repl=' ', string=w) for w in sents]
