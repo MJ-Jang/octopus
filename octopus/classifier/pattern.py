@@ -78,7 +78,7 @@ class PatternClassifier:
             # original text similarity without space
             sent_wo_space = sent.replace(' ', '')
             pattern_wo_space = re.findall(self.pattern, string=sent_wo_space)
-            if patterns:
+            if pattern_wo_space:
                 score_wo_space = sum([len(s) for s in pattern_wo_space]) / len(sent_wo_space)
 
         if score >= threshold or score_wo_space >= threshold:
@@ -96,7 +96,7 @@ class PatternClassifier:
                         is_domain = True
                         pass_ambiguous = True
         score = max(score, score_wo_space)
-        return {'pred': pred, 'score': max(score, score_wo_space), 'is_domain': is_domain, 'pass_ambiguous': pass_ambiguous}
+        return {'pred': pred, 'score': score, 'is_domain': is_domain, 'pass_ambiguous': pass_ambiguous}
 
     def preprocess(self, sents: list):
         sents = [self.n_str_pattern.sub(repl=' ', string=w) for w in sents]
